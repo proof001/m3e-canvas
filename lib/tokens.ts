@@ -2342,6 +2342,10 @@ export type FrameMode = "blank" | "phone";
 export type Platform = "android" | "web";
 export const DEFAULT_PLATFORM: Platform = "android";
 export const isPlatform = (v: unknown): v is Platform => v === "android" || v === "web";
+
+/** whether the generated prompt targets a normal app or a Power Apps canvas app */
+export type PromptMode = "normal" | "powerapps";
+export const isPromptMode = (v: unknown): v is PromptMode => v === "normal" || v === "powerapps";
 /** The target the prompt assumes when the author has not picked one: the web as
  *  soon as a desktop screen exists, Android otherwise. */
 export const defaultPlatformOf = (frames: Frame[], mode: FrameMode): Platform => (mode === "phone" && frames.some((f) => !isPhoneFrame(f)) ? "web" : DEFAULT_PLATFORM);
@@ -2357,6 +2361,8 @@ export type Doc = {
   frame: FrameMode;
   /** the implementation target the prompt names; Android unless the author picks the web */
   platform?: Platform;
+  /** prompt flavor; undefined means normal (legacy documents and share links) */
+  promptMode?: PromptMode;
   title: string;
   brief: string;
   /** the prompt as the author rewrote it by hand; undefined means the generated one */

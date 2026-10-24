@@ -51,7 +51,9 @@ import {
   connectSpecOf,
   Doc,
   isPlatform,
+  isPromptMode,
   Platform,
+  PromptMode,
   Frame,
   Place,
   FramePreset,
@@ -501,6 +503,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
   const [promptCoverUp, setPromptCoverUp] = useState(false);
   /** the author's explicit target; null follows the screens (web once a desktop screen exists) */
   const [platform, setPlatform] = useState<Platform | null>(null);
+  const [promptMode, setPromptMode] = useState<PromptMode | null>(null);
   /** a project file waiting for the author to confirm replacing the canvas */
   const [pendingImport, setPendingImport] = useState<Doc | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -758,6 +761,8 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
     else if (reset) setPromptOptions(undefined);
     if (isPlatform(doc.platform)) setPlatform(doc.platform);
     else if (reset) setPlatform(null);
+    if (isPromptMode(doc.promptMode)) setPromptMode(doc.promptMode);
+    else if (reset) setPromptMode(null);
   };
 
   useEffect(() => {
@@ -888,10 +893,24 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
     try {
       localStorage.setItem(
         DOC_KEY,
-        JSON.stringify({ groups, frames, paletteKey, frame, title, brief, promptEdit, promptOptions, platform: platform ?? undefined, customPalette: customPalette ?? undefined, dynamicColor, theme }),
+        JSON.stringify({
+          groups,
+          frames,
+          paletteKey,
+          frame,
+          title,
+          brief,
+          promptEdit,
+          promptOptions,
+          platform: platform ?? undefined,
+          promptMode: promptMode ?? undefined,
+          customPalette: customPalette ?? undefined,
+          dynamicColor,
+          theme,
+        }),
       );
     } catch {}
-  }, [editAccess, groups, frames, paletteKey, frame, title, brief, promptEdit, promptOptions, platform, customPalette, dynamicColor, theme]);
+  }, [editAccess, groups, frames, paletteKey, frame, title, brief, promptEdit, promptOptions, platform, promptMode, customPalette, dynamicColor, theme]);
 
   useEffect(() => {
     if (!loadedRef.current) return;
@@ -3473,8 +3492,22 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
   }, [setGap]);
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const doc: Doc = useMemo(
-    () => ({ groups, frames, paletteKey, frame, title, brief, promptEdit, promptOptions, platform: platform ?? undefined, customPalette: customPalette ?? undefined, dynamicColor, theme }),
-    [groups, frames, paletteKey, frame, title, brief, promptEdit, promptOptions, platform, customPalette, dynamicColor, theme],
+    () => ({
+      groups,
+      frames,
+      paletteKey,
+      frame,
+      title,
+      brief,
+      promptEdit,
+      promptOptions,
+      platform: platform ?? undefined,
+      promptMode: promptMode ?? undefined,
+      customPalette: customPalette ?? undefined,
+      dynamicColor,
+      theme,
+    }),
+    [groups, frames, paletteKey, frame, title, brief, promptEdit, promptOptions, platform, promptMode, customPalette, dynamicColor, theme],
   );
   /** the same document, for callbacks that were created on an earlier render */
   const docRef = useRef(doc);
@@ -4859,6 +4892,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
                     if ("promptEdit" in patch) setPromptEdit(patch.promptEdit);
                     if ("promptOptions" in patch) setPromptOptions(patch.promptOptions);
                     if ("platform" in patch) setPlatform(isPlatform(patch.platform) ? patch.platform : null);
+                    if ("promptMode" in patch) setPromptMode(isPromptMode(patch.promptMode) ? patch.promptMode : null);
                   }}
                 />
               )}

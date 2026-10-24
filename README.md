@@ -31,6 +31,8 @@
 
 M3E Canvas is a free, open-source sketchpad for app screens made of real Material 3 Expressive parts. It runs entirely in your browser: no account, no server, nothing to install. What you sketch becomes a precise prompt that any AI coding tool that takes one, such as Claude Code, Codex, Gemini CLI or Cursor, can turn into a working app.
 
+This fork adds an optional **Power App** prompt mode (Microsoft Power Apps canvas / `pa.yaml`); the core app is based on [lnkiai/m3e-canvas](https://github.com/lnkiai/m3e-canvas) (MIT).
+
 <p align="center"><a href="https://lnkiai.github.io/m3e-canvas/"><img src="docs/readme/ui/open-en.png" height="56" alt="Open the app" /></a></p>
 
 ## <img src="docs/readme/ui/icon-how.png" width="32" height="32" align="absmiddle" alt="" /> How it works

@@ -37,6 +37,14 @@ describe("isProject", () => {
     expect(isProject({ ...doc(), platform })).toBe(false);
   });
 
+  it.each([undefined, "normal", "powerapps"] as const)("accepts promptMode %s", (promptMode) => {
+    expect(isProject({ ...doc(), promptMode })).toBe(true);
+  });
+
+  it.each([null, "ios", "power-app", "", 0, true])("rejects promptMode %j", (promptMode) => {
+    expect(isProject({ ...doc(), promptMode })).toBe(false);
+  });
+
   it.each([null, undefined, true, 42, "{}", [], {}, { groups: [] }, { frames: [] },
     { groups: null, frames: [] }, { groups: {}, frames: [] }, { groups: [], frames: {} },
   ].map((value) => [value]))("rejects invalid document shape %# %o", (value) => {

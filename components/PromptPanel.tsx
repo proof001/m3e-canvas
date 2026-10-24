@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PromptMark, buildPrompt, promptMarks } from "@/lib/prompt";
-import { Doc, Palette, Platform, defaultPlatformOf } from "@/lib/tokens";
+import { Doc, Palette, Platform, PromptMode, defaultPlatformOf, isPromptMode } from "@/lib/tokens";
 import { Icon } from "./M3Node";
 import { Field, IconBtn, Segmented } from "./ui";
 import { t, useLang } from "@/lib/i18n";
@@ -317,7 +317,8 @@ export function PromptPanel({
   onCover?: (up: boolean) => void;
 }) {
   const lang = useLang();
-  const generated = useMemo(() => buildPrompt(doc, widths, undefined, lang), [doc, widths, lang]);
+  const generated = useMemo(() => buildPrompt(doc, widths, undefined, lang), [doc, widths, lang, doc.promptMode]);
+  const powerAppMode = doc.promptMode === "powerapps";
   const edited = doc.promptEdit !== undefined;
   const text = edited ? doc.promptEdit! : generated;
   const marks = useMemo(() => promptMarks(text, doc.frame === "phone" ? doc.frames : [], lang), [text, doc.frames, doc.frame, lang]);
@@ -435,7 +436,20 @@ export function PromptPanel({
     setLit(i);
     setJump((n) => n + 1);
   };
-  const platform = (
+  const promptModeValue: PromptMode = isPromptMode(doc.promptMode) ? doc.promptMode : "normal";
+  const modeToggle = (
+    <Segmented<PromptMode>
+      options={[
+        { key: "normal", icon: "smartphone", label: t("promptModeNormal", lang), title: t("promptModeNormalHint", lang) },
+        { key: "powerapps", icon: "widgets", label: t("promptModePowerApp", lang), title: t("promptModePowerAppHint", lang) },
+      ]}
+      value={promptModeValue}
+      onChange={(promptMode) => onDoc({ promptMode })}
+      p={p}
+      height={40}
+    />
+  );
+  const platform = !powerAppMode ? (
     <Segmented<Platform>
       options={[
         { key: "android", icon: "android", label: "Android", title: t("targetAndroid", lang) },
@@ -446,13 +460,21 @@ export function PromptPanel({
       p={p}
       height={40}
     />
+  ) : null;
+  const targetRow = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        {modeToggle}
+        {platform}
+      </div>
+    </div>
   );
 
   return (
     <>
       {/* the target stands above the box, which starts under the panel's fade band */}
       <div ref={panel} style={{ display: "flex", flexDirection: "column", height: "100%", padding: `${PANEL_PAD_TOP}px 12px 12px`, gap: 10 }}>
-        {platform}
+        {targetRow}
         <PromptBox
           text={text}
           starts={starts}
@@ -512,7 +534,7 @@ export function PromptPanel({
               transition: `left ${COVER_MS}ms ${COVER_EASE}, top ${COVER_MS}ms ${COVER_EASE}, width ${COVER_MS}ms ${COVER_EASE}`,
             }}
           >
-            {platform}
+            {targetRow}
           </div>
           <div
             className="no-scrollbar"
@@ -520,7 +542,7 @@ export function PromptPanel({
               position: "absolute",
               left: 20,
               width: 300,
-              top: grown ? 40 + 40 + 10 : PANEL_PAD_TOP + 40 + 10,
+              top: grown ? 40 + 88 + 10 : PANEL_PAD_TOP + 88 + 10,
               bottom: 12,
               display: "flex",
               flexDirection: "column",
