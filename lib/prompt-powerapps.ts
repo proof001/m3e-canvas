@@ -67,7 +67,7 @@ Write Power Apps source code as \`*.pa.yaml\` (the current source-code format; f
 - \`App.pa.yaml\` (App: Properties: StartScreen, Formulas — pa.yaml v3.0 has no Theme key at the app root)
 - one \`<ScreenName>.pa.yaml\` per screen, each with top-level \`Screens:\`. In a new blank app, write the first screen into the existing \`Screen1.pa.yaml\`
 - \`_EditorState.pa.yaml\` with ScreensOrder
-- Reusable components under the \\\`Component\\\` source folder when needed
+- Reusable components under the \`Component\` source folder when needed
 - A separate **Themes YAML** block (Font, BasePaletteColor, HueTorsion and Vibrancy required; ColorOverrides optional), applied in Studio via **Themes > Paste theme**
 In Studio code view, paste **one control subtree at a time**, not an entire Screens file.
 If you have the Power Apps canvas authoring MCP server (canvas-apps plugin), run \`list_controls\`/\`describe_control\` for every control type you use, copy its \`Control:\`, \`Variant\` and enum names exactly, and validate with it before you finish. Never guess a property or enum name.`;

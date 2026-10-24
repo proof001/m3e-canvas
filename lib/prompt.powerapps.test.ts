@@ -124,6 +124,13 @@ describe("buildPowerAppsPrompt", () => {
     expect(out).toMatch(/dropdown|Topic/i);
   });
 
+  it("does not emit escaped backticks in the deliverable section", () => {
+    setGlobalLang("en");
+    const out = buildPowerAppsPrompt(contactFormDoc(), {}, undefined, "en");
+    expect(out).not.toMatch(/\\`/);
+    expect(out).toContain("under the `Component` source folder");
+  });
+
   it("routes through buildPrompt when promptMode is powerapps", () => {
     setGlobalLang("en");
     const doc = contactFormDoc();

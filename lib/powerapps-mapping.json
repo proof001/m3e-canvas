@@ -39,7 +39,7 @@
     "canvasYaml": {
       "rules": [
         {
-          "rule": "Only *.pa.yaml (source code format) is active. fx.yaml and the early preview format are retired. Files: App.pa.yaml, one <Screen>.pa.yaml per screen, and reusable components under the \\Component source folder.",
+          "rule": "Only *.pa.yaml (source code format) is active. fx.yaml and the early preview format are retired. Files: App.pa.yaml, one <Screen>.pa.yaml per screen, and reusable components under the `Component` source folder.",
           "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/power-apps-yaml"
         },
         {
