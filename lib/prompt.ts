@@ -1,4 +1,5 @@
 import { KIND_TEXT, Lang, SWIPE_TEXT, TRANSITION_TEXT, getLang } from "./i18n";
+import { buildPowerAppsPrompt } from "./prompt-powerapps";
 import { constrainModalRails } from "./rail";
 import {
   CONTENT_W,
@@ -686,8 +687,11 @@ function boxCorners(it: Item, lang: Lang): string {
 
 const itemText = (it: Item, lang: Lang) => (lang === "ja" ? itemJa(it) : lang === "zh" ? itemZh(it) : lang === "ko" ? itemKo(it) : itemEn(it));
 
+/** one sketch item as prompt prose (all prompt modes share the same per-kind wording) */
+export const promptItemText = itemText;
+
 /** A collapse-on-scroll FAB only has that behavior on a screen whose body actually scrolls. */
-function promptGroupsForScroll(groups: Group[], scrollable: boolean): Group[] {
+export function promptGroupsForScroll(groups: Group[], scrollable: boolean): Group[] {
   if (scrollable) return groups;
   return groups.map((g) => ({
     ...g,
@@ -798,7 +802,7 @@ function slotName(it: Item, slot: string, lang: Lang): string {
   return `the ${icon ?? ""} icon button on the ${slot === "icon2" ? "right" : "left"}`;
 }
 
-function notes(g: Group, frames: Frame[], lang: Lang): string[] {
+export function notes(g: Group, frames: Frame[], lang: Lang): string[] {
   const out: string[] = [];
   const q = quote(lang);
   for (const it of g.items) {
@@ -859,7 +863,7 @@ function notes(g: Group, frames: Frame[], lang: Lang): string[] {
   return out;
 }
 
-function swipeNotes(f: Frame, frames: Frame[], lang: Lang): string[] {
+export function swipeNotes(f: Frame, frames: Frame[], lang: Lang): string[] {
   const out: string[] = [];
   const q = quote(lang);
   const screen = lang === "en" ? "screen" : lang === "zh" ? "屏幕" : lang === "ko" ? "화면" : "画面";
@@ -890,7 +894,7 @@ const overlapArea = (a: Rect, b: Rect) =>
 
 /** Groups keep their canvas order (later = drawn on top). A run that sits fully inside an
  *  earlier, larger one is nested in it, so a box with parts on it reads as one container. */
-function layoutTree(groups: Group[], widths: Record<string, number>): LNode[] {
+export function layoutTree(groups: Group[], widths: Record<string, number>): LNode[] {
   const nodes: LNode[] = groups.map((g) => ({ g, bb: groupBounds(g, widths), children: [] }));
   const roots: LNode[] = [];
   nodes.forEach((n, i) => {
@@ -906,7 +910,7 @@ function layoutTree(groups: Group[], widths: Record<string, number>): LNode[] {
 }
 
 /** Siblings whose vertical extents overlap and that sit side by side form one row. */
-function rowsOf(nodes: LNode[]): LNode[][] {
+export function rowsOf(nodes: LNode[]): LNode[][] {
   const sorted = [...nodes].sort((a, b) => a.bb.t - b.bb.t || a.bb.l - b.bb.l);
   const out: LNode[][] = [];
   for (const n of sorted) {
@@ -996,7 +1000,7 @@ type Grid = { rows: LNode[][]; cols: number; colGap: number; rowGap: number };
  *  kind, at least two rows of at least two cells, every row with the same column count
  *  except a shorter last one, columns sharing their left edges and all cells one width.
  *  Anything with parts on top of it is left to the row-by-row description. */
-function gridAt(rows: LNode[][], from: number): Grid | null {
+export function gridAt(rows: LNode[][], from: number): Grid | null {
   const first = rows[from];
   if (first.length < 2) return null;
   const kind = first[0].g.items[0].kind;
@@ -1104,7 +1108,7 @@ const WIDE_RAIL_STYLE: Record<Lang, string> = {
   ko: "M3 Expressive 내비게이션 레일: 접으면 너비 96dp, 아이콘 아래에 레이블을 배치한다. 펼치면 너비 220dp, 항목 높이 56dp, 아이콘과 레이블을 8dp 간격으로 가로 배치한다. 기존 상단 앱 바와 맞추어 두 모드의 접힌 상태와 펼친 상태 모두 surfaceContainer 배경을 사용한다. 선택 항목은 secondaryContainer 알약 표시기, onSecondaryContainer 아이콘, 레이블은 secondary를 우선 사용한다. 실제 배경(접힘: surfaceContainer, 펼침: secondaryContainer)과의 대비가 4.5:1 미만이면 각각 onSurface / onSecondaryContainer를 사용한다. 상단 메뉴 버튼으로 펼치기와 접기를 전환한다. 비모달은 콘텐츠 옆에 배치하고 모달은 펼칠 때 스크림과 함께 콘텐츠를 덮어 배경 조작을 차단한다. 스크림을 탭하거나 Escape를 누르면 닫힌다.",
 };
 
-function describeScreen(lines: string[], groups: Group[], frameRect: Rect | null, widths: Record<string, number>, lang: Lang) {
+export function describeScreen(lines: string[], groups: Group[], frameRect: Rect | null, widths: Record<string, number>, lang: Lang) {
   if (!groups.length) return;
   /* a navigation rail runs the full height, so it is written first, on its own; the
    * rest of the screen is then read beside it in rows as usual */
@@ -1118,7 +1122,7 @@ function describeScreen(lines: string[], groups: Group[], frameRect: Rect | null
 
 /* ---------- color palette ---------- */
 
-function paletteLines(p: Palette): string[] {
+export function paletteLines(p: Palette): string[] {
   const row = (pairs: [string, string][]) => `- ${pairs.map(([k, v]) => `${k} ${v}`).join(" / ")}`;
   return [
     row([
@@ -1767,6 +1771,7 @@ export function promptMarks(text: string, frames: Frame[], lang: Lang = getLang(
 }
 
 export function buildPrompt(doc: Doc, widths: Record<string, number>, onlyFrameId?: string, lang: Lang = getLang()): string {
+  if (doc.promptMode === "powerapps") return buildPowerAppsPrompt(doc, widths, onlyFrameId, lang);
   doc = { ...doc, groups: constrainModalRails(doc.groups) };
   const th = normalizeTheme(doc.theme);
   const pal = paletteOf(doc.paletteKey, doc.customPalette, th);
