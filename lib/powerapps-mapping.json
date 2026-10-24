@@ -1,8 +1,9 @@
 {
   "$comment": "M3 (m3e-canvas Kind) to Power Apps canvas mapping. Sourced from Microsoft Learn via the Microsoft docs MCP. Where Learn doesn't show a YAML type name, the source is Microsoft's own canvas-apps plugin references (github.com/microsoft/power-platform-skills, linked from Learn's create-canvas-external-tools page; commit aed70bf). statusConfirmed=false means the status comes from inference, not an explicit doc label.",
   "checkedOn": "2026-10-24",
+  "reviewedBy": "Maker (Power Platform), 2026-10-24",
   "statusBasis": "GA = listed without '(preview)' on https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-controls-reference. preview = marked '(preview)' there. classic = a classic (non-Fluent) control or Power Fx function. Microsoft: 'a subset of modern controls is GA; the broader feature set remains in preview' (https://learn.microsoft.com/en-us/power-apps/guidance/coding-guidelines/app-design-guidelines).",
-  "versionNote": "The @version values come from Learn samples. The live catalog can be newer (e.g. ModernText@1.5.0), so the canvas authoring MCP describe_control is authoritative.",
+  "versionNote": "Omit @version in YAML unless you copied a Control: line from Power Apps Studio or describe_control. Real exports may show e.g. ModernDropdown@1.0.2. Prefer ModernText@1.0.0 or omit version for ModernText; do not assume ModernText@1.5.0.",
   "sections": {
     "powerFx": {
       "rules": [
@@ -23,8 +24,12 @@
           "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/efficient-calculations#calculations"
         },
         {
-          "rule": "Use Notify(msg, NotificationType.*, timeoutMs) for feedback and Confirm() for confirm dialogs. Both are behavior formulas only.",
+          "rule": "Use Notify(msg, NotificationType.*, timeoutMs) for feedback. Both are behavior formulas only.",
           "docUrl": "https://learn.microsoft.com/en-us/power-platform/power-fx/reference/function-showerror"
+        },
+        {
+          "rule": "Confirm() is PREVIEW (not GA). Requires modern controls and themes enabled; otherwise the browser native dialog appears. Dismissing Confirm returns blank — use If(Not(IsBlank(Confirm(...))), ...) and handle cancel explicitly.",
+          "docUrl": "https://learn.microsoft.com/en-us/power-platform/power-fx/reference/function-confirm"
         },
         {
           "rule": "Forms: one Form for New, Edit and View (NewForm/EditForm/ViewForm, FormMode). Validate required fields and keep a form on one screen where possible.",
@@ -35,15 +40,15 @@
     "canvasYaml": {
       "rules": [
         {
-          "rule": "Only *.pa.yaml (source code format) is active. fx.yaml and the early preview format are retired. Files: App.pa.yaml, one <Screen>.pa.yaml per screen, Components folder.",
+          "rule": "Only *.pa.yaml (source code format) is active. fx.yaml and the early preview format are retired. Files: App.pa.yaml, one <Screen>.pa.yaml per screen, and reusable components under the \\Component source folder.",
           "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/power-apps-yaml"
         },
         {
-          "rule": "Top-level keys: App, Screens, ComponentDefinitions, DataSources, EditorState. A screen has Properties and Children. Children is an ordered sequence of '- Name:' items with Control, optional Variant, Properties and Children.",
+          "rule": "Top-level keys: App, Screens, ComponentDefinitions, DataSources, EditorState (pa.yaml v3.0). There is no Theme key at the app root — themes are applied separately (see modernTheming). A screen has Properties and Children. Children is an ordered sequence of '- Name:' items with Control, optional Variant, Properties and Children.",
           "docUrl": "https://raw.githubusercontent.com/microsoft/PowerApps-Tooling/refs/heads/master/schemas/pa-yaml/v3.0/pa.schema.yaml"
         },
         {
-          "rule": "Control: TypeId@version. Without @version, the latest is used. All instances of a type must use the same version. ZIndex ascends from 1 and follows Children order.",
+          "rule": "Control: TypeId with optional @version. Omit @version unless copied from Studio or describe_control; all instances of a type must use the same version when you include one. ZIndex ascends from 1 and follows Children order.",
           "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/power-apps-yaml"
         },
         {
@@ -51,11 +56,11 @@
           "docUrl": "https://learn.microsoft.com/en-us/power-platform/power-fx/yaml-formula-grammar"
         },
         {
-          "rule": "A single-line formula can't contain '#' or ': '. Use a block scalar or quote the whole value. Record literals must be quoted: Default: '={Value: \"Tab1\"}'.",
+          "rule": "':' or '#' anywhere in a single-line formula breaks YAML (PA1001). Use a |- block scalar with '=' on the first content line — single-quote wrapping is not the supported fix. Record defaults belong in blocks, e.g. DefaultSelectedItems: |-\\n  ={Value: \"All\"}.",
           "docUrl": "https://learn.microsoft.com/en-us/power-platform/power-fx/yaml-formula-grammar"
         },
         {
-          "rule": "pa.yaml is meant for review and source control. External edits are supported through Power Platform Git integration or the canvas authoring MCP server (coauthoring session), which validates YAML. Use its list_controls/describe_control rather than guessing property or enum names.",
+          "rule": "pa.yaml is meant for review and source control. External edits are supported through Power Platform Git integration or the canvas authoring MCP server (coauthoring session), which validates YAML. Use its list_controls/describe_control rather than guessing property or enum names. In Studio code view, paste one control subtree at a time, not an entire Screens file.",
           "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/create-canvas-external-tools"
         }
       ]
@@ -67,7 +72,7 @@
           "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/overview-modern-controls"
         },
         {
-          "rule": "A theme is Font, BasePaletteColor (seed hex), HueTorsion (-100..100), Vibrancy (-100..100) and optional ColorOverrides (Lighter30..Darker40). It produces a 16-slot palette, and themes can be pasted as YAML.",
+          "rule": "A theme is Font, BasePaletteColor (seed hex), HueTorsion (-100..100), Vibrancy (-100..100) and optional ColorOverrides (Lighter30..Darker40). Paste it as a Themes YAML block in Studio (Themes > Paste theme) — not inside App.pa.yaml.",
           "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-theming"
         },
         {
@@ -131,7 +136,7 @@
     "naming": {
       "rules": [
         {
-          "rule": "Controls use camelCase with a 3-letter type prefix plus purpose, e.g. btnSubmit, txtEmail, lblTitle, galOrders, conHeader, drpStatus, chkAgree, tglNotify, sldVolume, dteDue, tabMain, crdItem, ico, img, hdr, pbar, frm, cmb, bdg, rtg, tmr. Names are unique app-wide. Suffix a short screen name when reused (galNavHS).",
+          "rule": "Controls use camelCase with a 3-letter type prefix plus purpose, e.g. btnSubmit, txtEmail, lblTitle, galOrders, conHeader, drpStatus, chkAgree, tglNotify, sldVolume, dteDue, tabMain, crdItem, ico, img, hdr, cam, tbl. House-style prefixes pbar, frm, cmb, bdg, rtg, tmr are common in samples but not required by Learn. Names are unique app-wide. Suffix a short screen name when reused (galNavHS).",
           "docUrl": "https://learn.microsoft.com/en-us/power-apps/guidance/coding-guidelines/code-readability"
         },
         {
@@ -289,7 +294,7 @@
         "onClick": "OnSelect =UpdateContext({locSelected: !locSelected})",
         "icon": "Icon"
       },
-      "notes": "No chip control. Interactive chips become toggling buttons and display-only chips become ModernBadge (Content, Icon). The Learn Badge page documents an Intent property (BadgeIntent), while Microsoft's plugin documents ThemeColor =BadgeColor.*. That's version-dependent, so check with describe_control.",
+      "notes": "No chip control. Interactive chips become toggling buttons. Display-only chips use ModernBadge with Intent = BadgeIntent.Neutral|Highlight|Informative|Positive|Attention|Caution|Urgent|Critical (map M3 success to Positive). Do not use ThemeColor/BadgeColor.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-control-button",
       "extraDocUrls": [
         "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-controls-badge",
@@ -298,19 +303,18 @@
     },
     {
       "m3Component": "topAppBar",
-      "paControl": "Header (modern) — YAML type name not confirmed",
-      "status": "GA",
+      "paControl": "GroupContainer (Horizontal AutoLayout) composite — primary mapping",
+      "status": "classic",
       "statusConfirmed": true,
-      "yamlNameConfirmed": false,
-      "composite": false,
+      "yamlNameConfirmed": true,
+      "composite": true,
       "keyProperties": {
-        "title": "Title",
-        "show title": "IsTitleVisible",
-        "logo/nav icon": "Logo, IsLogoVisible, OnSelectLogo",
-        "avatar": "IsProfilePictureVisible",
-        "style": "Style"
+        "title": "ModernText (title style), FillPortions =1",
+        "back/nav": "ModernButton Layout IconOnly, OnSelect =Back()",
+        "actions": "trailing ModernButton(s)",
+        "bar surface": "Fill =App.Theme.Colors.* on the container"
       },
-      "notes": "GA basis: listed on the Modern controls reference without a '(preview)' marker; Microsoft notes only a subset of modern controls is GA. I couldn't find the YAML type name (likely ModernHeader) on Learn, so resolve it with describe_control. Fallback: a horizontal GroupContainer with ModernButton (IconOnly) + ModernText + action buttons.",
+      "notes": "Learn lists app navigation and custom colors as unsupported on Header (modern). Build the top app bar as conTopBar (horizontal GroupContainer): btnBack + lblTitle + optional actions. Optional Header (modern) YAML name remains unverified — use describe_control if you use it; never OnSelectLogo =Back().",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-controls-header",
       "extraDocUrls": [
         "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-controls-reference"
@@ -365,6 +369,8 @@
       "composite": false,
       "keyProperties": {
         "placeholder": "Placeholder",
+        "search type": "Type =TextInputType.Search",
+        "appearance": "Appearance =Appearance.FilledDarker|FilledLighter|Outline (default FilledDarker)",
         "query": "Text (output); TriggerOutput =TriggerOutput.Delayed (verify enum via describe_control)",
         "leading icon": "ModernIcon Icon =\"Search\" in a horizontal container",
         "results": "Gallery.Items =Search(DataSource, txtSearch.Text, ColumnName) or Filter(..., StartsWith(...))"
@@ -390,10 +396,10 @@
         "image": "Image, ImageAltText (or HeaderImage)",
         "onClick": "OnSelect",
         "fill": "Fill",
-        "corners": "Radius (Learn) / BorderRadius (plugin)",
+        "corners": "Radius vs BorderRadius — unconfirmed (verify with describe_control)",
         "elevation": "DropShadow"
       },
-      "notes": "Card is marked (preview) on the reference page. ModernCard fills unset slots with placeholder content, so set every slot or use a GroupContainer (RadiusTopLeft.., DropShadow, Padding*) for text-only or non-clickable cards. GroupContainer has no OnSelect.",
+      "notes": "Card is marked (preview) on the reference page. ModernCard fills unset slots with placeholder content, so set every slot or use a GroupContainer (RadiusTopLeft.., DropShadow, Padding*) for text-only or non-clickable cards. GroupContainer has no OnSelect. Corner property name (Radius vs BorderRadius) is unconfirmed — verify with describe_control.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-control-card",
       "extraDocUrls": [
         "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-controls-reference",
@@ -424,9 +430,9 @@
     },
     {
       "m3Component": "dialog",
-      "paControl": "Confirm() function, or an overlay GroupContainer",
-      "status": "GA",
-      "statusConfirmed": false,
+      "paControl": "Confirm() function (preview), or an overlay GroupContainer",
+      "status": "preview",
+      "statusConfirmed": true,
       "yamlNameConfirmed": true,
       "composite": true,
       "keyProperties": {
@@ -434,7 +440,7 @@
         "confirm action": "If(Confirm(...), Remove(...))",
         "custom content": "overlay container Visible =locShowDialog"
       },
-      "notes": "For simple confirm/cancel dialogs, use the Power Fx Confirm function. Richer dialogs are a composite overlay (scrim Rectangle + centered container). The GA status here is the function's, not a control's.",
+      "notes": "Confirm() is PREVIEW — requires modern controls/themes; otherwise the browser native dialog appears. Dismiss returns blank; guard with If(Not(IsBlank(Confirm(...))), ...). Richer dialogs are a composite overlay (scrim Rectangle + centered container).",
       "docUrl": "https://learn.microsoft.com/en-us/power-platform/power-fx/reference/function-confirm",
       "extraDocUrls": [
         "https://github.com/microsoft/power-platform-skills/blob/main/plugins/canvas-apps/references/PowerFxGuide.md"
@@ -468,10 +474,10 @@
         "value": "Default (input) / Text (output)",
         "placeholder": "Placeholder",
         "required": "Required",
-        "error": "ValidationState",
-        "type (multiline/password)": "Type =TextInputType.SingleLine|Multiline|Password (check members with describe_control)",
+        "error": "ValidationState =If(condition, ValidationState.Error, ValidationState.None)",
+        "type (multiline/password/search)": "Type =TextInputType.SingleLine|Multiline|Password|Search (check members with describe_control)",
         "maxLength": "MaxLength",
-        "variant outlined/filled": "Appearance =Appearance.* (check members with describe_control)",
+        "variant outlined/filled": "Appearance =Appearance.FilledDarker|FilledLighter|Outline",
         "onChange": "OnChange (fires on blur)"
       },
       "notes": "GA basis: listed on the Modern controls reference without a '(preview)' marker; Microsoft notes only a subset of modern controls is GA.",
@@ -482,7 +488,7 @@
     },
     {
       "m3Component": "select",
-      "paControl": "ModernDropdown@1.0.0 (preview); ModernCombobox@1.0.0 for long or searchable lists",
+      "paControl": "ModernDropdown (preview, omit @version); ModernCombobox for long or searchable lists",
       "status": "preview",
       "statusConfirmed": true,
       "yamlNameConfirmed": true,
@@ -490,12 +496,14 @@
       "keyProperties": {
         "options": "Items",
         "option text": "ItemDisplayText =ThisItem.Value",
-        "default": "Default",
+        "default (dropdown)": "Default",
+        "default (combobox)": "DefaultSelectedItems",
+        "single select combobox": "SelectMultiple: =false (defaults to true)",
         "value": "Selected (output)",
         "required": "Required",
         "onChange": "OnChange"
       },
-      "notes": "Dropdown is (preview) and Combobox isn't marked preview. Use ModernRadio for short static sets. ItemDisplayText is a per-item formula, not a quoted column name.",
+      "notes": "Dropdown is (preview); omit @version unless Studio shows one (e.g. @1.0.2). Combobox uses DefaultSelectedItems and SelectMultiple: =false for single select. Use ModernRadio for short static sets. ItemDisplayText is a per-item formula, not a quoted column name.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-control-dropdown",
       "extraDocUrls": [
         "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-control-combobox",
@@ -513,7 +521,7 @@
       "keyProperties": {
         "label": "Label",
         "on": "Checked",
-        "label side": "LabelPosition",
+        "label side": "LabelPosition =LabelPosition.Before|After",
         "onToggle": "OnCheck / OnUncheck"
       },
       "notes": "GA basis: listed on the Modern controls reference without a '(preview)' marker; Microsoft notes only a subset of modern controls is GA. I couldn't find the YAML type name (likely ModernToggle) in the docs, so resolve it with describe_control.",
@@ -535,7 +543,7 @@
         "onChange": "OnCheck / OnUncheck",
         "a11y": "AccessibleLabel"
       },
-      "notes": "GA basis: listed on the Modern controls reference without a '(preview)' marker; Microsoft notes only a subset of modern controls is GA. I couldn't find the YAML type name (likely ModernCheckbox) in the docs, so resolve it with describe_control.",
+      "notes": "YAML type name unverified (likely ModernCheckbox). Known classic export: CheckBox@2.1.0. Resolve modern YAML with describe_control.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-control-checkbox",
       "extraDocUrls": [
         "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-controls-reference"
@@ -575,7 +583,7 @@
         "color": "Color =App.Theme.Colors.*",
         "onClick": "OnSelect"
       },
-      "notes": "GA basis: listed on the Modern controls reference without a '(preview)' marker; Microsoft notes only a subset of modern controls is GA. Microsoft's plugin shows that ModernText@1.5.0 also exists. All instances must use the same version, so copy the Control value from describe_control.",
+      "notes": "Use ModernText@1.0.0 or omit @version; do not assume @1.5.0. When you include a version, all instances of the type must match — copy from Studio or describe_control.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-control-text",
       "extraDocUrls": [
         "https://github.com/microsoft/power-platform-skills/blob/main/plugins/canvas-apps/references/ControlGuide.md"
@@ -593,7 +601,7 @@
         "fit": "ImagePosition",
         "a11y": "AccessibleLabel"
       },
-      "notes": "There's no modern image control. I didn't confirm the YAML type name (likely Image) in the docs. ModernCard.Image is an option inside cards.",
+      "notes": "There's no modern image control. YAML name unverified; known classic export Image@2.2.3. ModernCard.Image is an option inside cards.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/control-image",
       "extraDocUrls": []
     },
@@ -608,7 +616,7 @@
         "capture": "OnSelect =Collect(colPhotos, {Photo: Self.Photo})",
         "photo": "Photo / Stream"
       },
-      "notes": "A classic control. Use Add picture for file/photo upload. Learn says Add picture isn't supported inside layout containers. I didn't confirm the YAML type names.",
+      "notes": "YAML type name unverified. Known classic exports include Camera and CheckBox@2.1.0 (unrelated control, but seen in real apps). Use Add picture for file/photo upload. Learn says Add picture isn't supported inside layout containers. Prefix cam for camera controls.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/control-camera",
       "extraDocUrls": [
         "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/control-add-picture",
@@ -626,7 +634,7 @@
         "pins": "Items + ItemsLabels/ItemsLatitudes/ItemsLongitudes",
         "pin color/icon": "ItemsColors / ItemsIcons"
       },
-      "notes": "Requires an admin to enable geospatial features in the Power Platform admin center (with separate terms of service), a DLP policy that allows the Spatial Services connector, and it's unavailable in US Government. Fallback: a static Image.",
+      "notes": "YAML type name unverified. Requires geospatial admin enablement, DLP for Spatial Services, and is unavailable in US Government. Fallback: a static Image@2.2.3.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/geospatial-component-map",
       "extraDocUrls": [
         "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/geospatial-overview"
@@ -641,10 +649,10 @@
       "composite": false,
       "keyProperties": {
         "thickness": "Height =1 (horizontal) / Width =1 (vertical)",
-        "color": "Fill =App.Theme.Colors.Lighter40 (pick a slot)",
+        "color": "Fill =App.Theme.Colors.Lighter40 (verify slot in Studio)",
         "inset": "container Padding"
       },
-      "notes": "Rectangle has no radius properties. The YAML type name 'Rectangle' comes from Microsoft's plugin references. The Learn page is Shape controls.",
+      "notes": "Rectangle has no radius properties. Lighter40 theme slot: verify in Studio. The YAML type name 'Rectangle' comes from Microsoft's plugin references.",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/control-shapes-icons",
       "extraDocUrls": [
         "https://github.com/microsoft/power-platform-skills/blob/main/plugins/canvas-apps/references/ControlGuide.md"
@@ -767,11 +775,11 @@
       "composite": false,
       "keyProperties": {
         "tabs[]": "Items (table of tab labels)",
-        "selected": "Default / Selected",
+        "selected": "Default =\"Overview\" (plain text label, not a record) / Selected",
         "appearance": "Appearance =TabListAppearance.*",
         "onChange": "OnChange switches in-screen panels (Visible on sibling containers)"
       },
-      "notes": "GA basis: listed on the Modern controls reference without a '(preview)' marker; Microsoft notes only a subset of modern controls is GA. For switching panels within one screen only. For cross-screen navigation, use buttons (see bottomNav). Record literals in Default must be quoted in YAML.",
+      "notes": "GA basis: listed on the Modern controls reference without a '(preview)' marker; Microsoft notes only a subset of modern controls is GA. For switching panels within one screen only. For cross-screen navigation, use buttons (see bottomNav). Default is a plain text formula like =\"Overview\".",
       "docUrl": "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-control-tabs-or-tabs-list",
       "extraDocUrls": [
         "https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-controls-reference",
@@ -831,7 +839,7 @@
         "format": "Format =DatePickerFormat.*",
         "range": "StartDate / EndDate",
         "time zone": "DateTimeZone",
-        "error": "ValidationState",
+        "error": "ValidationState =If(condition, ValidationState.Error, ValidationState.None)",
         "layout modal/docked/input": "one control (popup calendar). Mode can't be chosen."
       },
       "notes": "GA basis: listed on the Modern controls reference without a '(preview)' marker; Microsoft notes only a subset of modern controls is GA. Use the singular 'modern-control-date-picker' page. The older plural page lists legacy property names.",

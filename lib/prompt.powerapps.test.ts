@@ -77,6 +77,7 @@ describe("powerapps-mapping.json", () => {
   it("validates against the expected schema", () => {
     expect(typeof mapping.checkedOn).toBe("string");
     expect(mapping.checkedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(mapping.reviewedBy).toContain("Maker");
     expect(Array.isArray(mapping.components)).toBe(true);
     for (const c of mapping.components) {
       expect(typeof c.m3Component).toBe("string");
@@ -106,13 +107,22 @@ describe("buildPowerAppsPrompt", () => {
   it("includes mapped control names for a sample form sketch", () => {
     setGlobalLang("en");
     const out = buildPowerAppsPrompt(contactFormDoc(), {}, undefined, "en");
-    expect(out).toContain("ModernTextInput@1.0.0");
-    expect(out).toContain("ModernButton@1.0.0");
-    expect(out).toContain("ModernDropdown@1.0.0");
+    expect(out).toContain("ModernTextInput");
+    expect(out).toContain("ModernButton");
+    expect(out).toContain("ModernDropdown");
     expect(out).toContain("Checkbox (modern)");
     expect(out).toContain("Notify()");
     expect(out).toContain("ContactScreen");
-    expect(out).toContain("## Sources (checked 2026-10-24)");
+    expect(out).toContain("## Sources (checked 2026-10-24; Maker (Power Platform), 2026-10-24)");
+  });
+
+  it("describes form controls by kind, not as a connected button group", () => {
+    setGlobalLang("en");
+    const out = buildPowerAppsPrompt(contactFormDoc(), {}, undefined, "en");
+    expect(out).toContain("text field");
+    expect(out).toContain("checkbox");
+    expect(out).not.toContain("connected button group");
+    expect(out).toMatch(/dropdown|Topic/i);
   });
 
   it("routes through buildPrompt when promptMode is powerapps", () => {

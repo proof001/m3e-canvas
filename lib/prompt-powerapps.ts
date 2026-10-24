@@ -2,10 +2,10 @@ import mapping from "./powerapps-mapping.json";
 import { Lang, getLang } from "./i18n";
 import { constrainModalRails } from "./rail";
 import {
-  describeScreen,
   notes,
   paletteLines,
   promptGroupsForScroll,
+  promptItemText,
   promptOptionsOf,
   PROMPT_OPTION_TEXT,
   PROMPT_OPTIONS,
@@ -16,13 +16,12 @@ import {
   FONTS,
   Frame,
   Group,
+  Item,
   Kind,
   KIND_ORDER,
   Platform,
   explodeGroup,
   frameOfGroup,
-  frameLengthOf,
-  frameRect,
   frameSizeOf,
   isPhoneFrame,
   normalizeTheme,
@@ -48,6 +47,7 @@ type MappingComponent = {
 
 type MappingFile = {
   checkedOn: string;
+  reviewedBy?: string;
   sections: Record<string, { rules: { rule: string; docUrl: string }[] }>;
   components: MappingComponent[];
 };
@@ -56,16 +56,21 @@ const MAP = mapping as unknown as MappingFile;
 const BY_KIND = new Map<string, MappingComponent>(MAP.components.map((c) => [c.m3Component, c]));
 
 const SYNTAX_RULES = `## Syntax rules (pa.yaml + Power Fx)
-- Control instance: \`- ctlName:\` → \`Control: TypeId[@version]\`, optional \`Variant:\`, \`Properties:\`, \`Children:\`. Children order = layout order.
+- Control instance: \`- ctlName:\` → \`Control: TypeId\` with optional \`@version\`, optional \`Variant:\`, \`Properties:\`, \`Children:\`. Children order = layout order. Omit \`@version\` unless copied from Studio or describe_control; when present, all instances of that type must match.
 - Every property value is a formula that starts with \`=\`: \`Text: ="Save"\`, \`Width: =Parent.Width\`, \`Visible: =true\`.
-- Multi-line formulas use \`|-\` with \`=\` on the first content line. Quote, or use a block for, any value containing \`: \` or \`#\`, and quote record literals: \`Default: '={Value: "All"}'\`.
-- All instances of one control type use the same @version.`;
+- \`:\` or \`#\` anywhere in a single-line formula breaks YAML (PA1001). Use a \`|-\` block scalar with \`=\` on the first content line — single-quote wrapping is not the supported fix. Record defaults use blocks, e.g.:
+  DefaultSelectedItems: |-
+    ={Value: "All"}
+- ValidationState is an enum: \`If(condition, ValidationState.Error, ValidationState.None)\` — never the strings "Error" or "None".`;
 
 const DELIVERABLE = `## Deliverable
 Write Power Apps source code as \`*.pa.yaml\` (the current source-code format; fx.yaml is retired):
-- \`App.pa.yaml\` (App: Properties: StartScreen, Formulas, Theme as needed)
+- \`App.pa.yaml\` (App: Properties: StartScreen, Formulas — pa.yaml v3.0 has no Theme key at the app root)
 - one \`<ScreenName>.pa.yaml\` per screen, each with top-level \`Screens:\`. In a new blank app, write the first screen into the existing \`Screen1.pa.yaml\`
 - \`_EditorState.pa.yaml\` with ScreensOrder
+- Reusable components under the \\\`Component\\\` source folder when needed
+- A separate **Themes YAML** block (Font, BasePaletteColor, HueTorsion and Vibrancy required; ColorOverrides optional), applied in Studio via **Themes > Paste theme**
+In Studio code view, paste **one control subtree at a time**, not an entire Screens file.
 If you have the Power Apps canvas authoring MCP server (canvas-apps plugin), run \`list_controls\`/\`describe_control\` for every control type you use, copy its \`Control:\`, \`Variant\` and enum names exactly, and validate with it before you finish. Never guess a property or enum name.`;
 
 function screenKey(name: string): string {
@@ -105,6 +110,30 @@ function mappingLine(kind: Kind): string {
   if (!c) return `- ${kind} → (no mapping entry; check describe_control)`;
   const note = c.notes ? ` ${c.notes}` : "";
   return `- ${c.m3Component} → ${c.paControl} [${statusTag(c)}]: ${keyPropsLine(c)}.${note}`;
+}
+
+function itemLinePa(it: Item, lang: Lang): string {
+  const c = BY_KIND.get(it.kind);
+  return `${promptItemText(it, lang)}${c ? ` → ${c.paControl}` : ""}`;
+}
+
+/** Power Apps prompts list each control by kind; avoid Android-style "connected button group" for vertical form stacks. */
+function describePowerAppsScreen(lines: string[], groups: Group[], lang: Lang) {
+  if (!groups.length) return;
+  const rails = groups.filter((g) => g.items.length === 1 && g.items[0].kind === "navRail");
+  for (const g of rails) lines.push(`- ${itemLinePa(g.items[0], lang)}`);
+  const rest = rails.length ? groups.filter((g) => !rails.includes(g)) : groups;
+  const ordered = [...rest].sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const g of ordered) {
+    if (g.items.length === 1) {
+      lines.push(`- ${itemLinePa(g.items[0], lang)}`);
+      continue;
+    }
+    const kinds = new Set(g.items.map((it) => it.kind));
+    const dir = g.axis === "y" ? "Vertical stack" : "Row";
+    lines.push(`- ${dir} (${g.items.length} controls${kinds.size > 1 ? ", mixed kinds" : ""}):`);
+    for (const it of g.items) lines.push(`  - ${itemLinePa(it, lang)}`);
+  }
 }
 
 function collectKinds(groups: Group[]): Kind[] {
@@ -170,10 +199,14 @@ export function buildPowerAppsPrompt(doc: Doc, widths: Record<string, number>, o
   lines.push("");
   lines.push("## Theme");
   lines.push(
-    "Turn on modern controls and themes, and use one modern theme:",
-    `  Font: ${fontEntry.family}   BasePaletteColor: '${pal.primary}'   (HueTorsion 0, Vibrancy 0 unless told otherwise)`,
-    "Use `App.Theme.Colors.<slot>` and `App.Theme.Font` for every colour and font. Don't hard-code RGBA or hex on controls.",
-    "Approximate the sketch palette (M3 roles) with the theme: primary → BasePaletteColor; surface → screen Fill; error → ValidationState / NotificationType.Error.",
+    "Turn on modern controls and themes. Paste a Themes YAML block in Studio (Themes > Paste theme) — not inside App.pa.yaml:",
+    `  Font: ${fontEntry.family}`,
+    `  BasePaletteColor: '${pal.primary}'`,
+    "  HueTorsion: 0",
+    "  Vibrancy: 0",
+    "  (ColorOverrides optional)",
+    "Use `App.Theme.Colors.<slot>` and `App.Theme.Font` on controls. Don't hard-code RGBA or hex on controls.",
+    "Approximate the sketch palette (M3 roles) with the theme: primary → BasePaletteColor; surface → screen Fill; error → ValidationState.Error / NotificationType.Error.",
   );
   lines.push("Sketch palette (M3 roles for approximation):");
   lines.push(...paletteLines(pal));
@@ -194,7 +227,7 @@ export function buildPowerAppsPrompt(doc: Doc, widths: Record<string, number>, o
 
   if (frames.length === 0 && groups.length > 0) {
     const screenLines: string[] = [];
-    describeScreen(screenLines, promptGroupsForScroll(groups, false), null, widths, lang);
+    describePowerAppsScreen(screenLines, promptGroupsForScroll(groups, false), lang);
     lines.push("### Freeform layout");
     lines.push(...screenLines);
   } else {
@@ -205,7 +238,7 @@ export function buildPowerAppsPrompt(doc: Doc, widths: Record<string, number>, o
       lines.push(`### ${f.name || "Screen"}  (YAML key \`${key}\`)`);
       if (hasText(f.note)) lines.push(trimEnd(f.note!) + ".");
       const screenLines: string[] = [];
-      if (gs.length > 0) describeScreen(screenLines, promptGroupsForScroll(gs, scrollsOf(f)), frameRect(f), widths, lang);
+      if (gs.length > 0) describePowerAppsScreen(screenLines, promptGroupsForScroll(gs, scrollsOf(f)), lang);
       if (screenLines.length) lines.push(...screenLines);
       else lines.push("- (empty screen — add a root GroupContainer and controls)");
       const nav = [...gs.flatMap((g) => notes(g, allFrames, lang)), ...swipeNotes(f, allFrames, lang)];
@@ -218,7 +251,7 @@ export function buildPowerAppsPrompt(doc: Doc, widths: Record<string, number>, o
       lines.push("");
       lines.push("### Components outside a frame");
       const screenLines: string[] = [];
-      describeScreen(screenLines, promptGroupsForScroll(loose, false), null, widths, lang);
+      describePowerAppsScreen(screenLines, promptGroupsForScroll(loose, false), lang);
       lines.push(...screenLines);
     }
   }
@@ -227,7 +260,7 @@ export function buildPowerAppsPrompt(doc: Doc, widths: Record<string, number>, o
   lines.push("## Control mapping for this sketch");
   for (const kind of kindsUsed) lines.push(mappingLine(kind));
   lines.push(
-    "Prefer modern (Fluent) controls. Use a classic control (Gallery, Image, Camera, Rectangle) only where no modern one exists. Build M3 patterns with no equivalent (FAB, chips, bottom nav, sheets, split button) from GroupContainer + ModernButton as described. Use the Notify() function for snackbars and Confirm() for simple dialogs.",
+    "Prefer modern (Fluent) controls. Use a classic control (Gallery, Image, Camera, Rectangle) only where no modern one exists. Build M3 patterns with no equivalent (FAB, chips, bottom nav, sheets, split button, top app bar) from GroupContainer + ModernButton as described. Use Notify() for snackbars. Confirm() is preview — requires modern controls/themes and returns blank when dismissed.",
   );
 
   lines.push("");
@@ -261,7 +294,7 @@ export function buildPowerAppsPrompt(doc: Doc, widths: Record<string, number>, o
   lines.push("");
   lines.push("Output: the YAML files in full, then a short list of assumptions and any control whose `describe_control` result differed from this brief.");
   lines.push("");
-  lines.push(`## Sources (checked ${MAP.checkedOn})`);
+  lines.push(`## Sources (checked ${MAP.checkedOn}${MAP.reviewedBy ? `; ${MAP.reviewedBy}` : ""})`);
   for (const url of sourceUrls(kindsUsed)) lines.push(`- ${url}`);
 
   return lines.join("\n");

@@ -687,6 +687,9 @@ function boxCorners(it: Item, lang: Lang): string {
 
 const itemText = (it: Item, lang: Lang) => (lang === "ja" ? itemJa(it) : lang === "zh" ? itemZh(it) : lang === "ko" ? itemKo(it) : itemEn(it));
 
+/** one sketch item as prompt prose (all prompt modes share the same per-kind wording) */
+export const promptItemText = itemText;
+
 /** A collapse-on-scroll FAB only has that behavior on a screen whose body actually scrolls. */
 export function promptGroupsForScroll(groups: Group[], scrollable: boolean): Group[] {
   if (scrollable) return groups;
