@@ -1,7 +1,6 @@
 {
   "$comment": "M3 (m3e-canvas Kind) to Power Apps canvas mapping. Sourced from Microsoft Learn via the Microsoft docs MCP. Where Learn doesn't show a YAML type name, the source is Microsoft's own canvas-apps plugin references (github.com/microsoft/power-platform-skills, linked from Learn's create-canvas-external-tools page; commit aed70bf). statusConfirmed=false means the status comes from inference, not an explicit doc label.",
   "checkedOn": "2026-10-24",
-  "reviewedBy": "Maker (Power Platform), 2026-10-24",
   "statusBasis": "GA = listed without '(preview)' on https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/controls/modern-controls/modern-controls-reference. preview = marked '(preview)' there. classic = a classic (non-Fluent) control or Power Fx function. Microsoft: 'a subset of modern controls is GA; the broader feature set remains in preview' (https://learn.microsoft.com/en-us/power-apps/guidance/coding-guidelines/app-design-guidelines).",
   "versionNote": "Omit @version in YAML unless you copied a Control: line from Power Apps Studio or describe_control. Real exports may show e.g. ModernDropdown@1.0.2. Prefer ModernText@1.0.0 or omit version for ModernText; do not assume ModernText@1.5.0.",
   "sections": {

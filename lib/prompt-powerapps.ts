@@ -47,7 +47,6 @@ type MappingComponent = {
 
 type MappingFile = {
   checkedOn: string;
-  reviewedBy?: string;
   sections: Record<string, { rules: { rule: string; docUrl: string }[] }>;
   components: MappingComponent[];
 };
@@ -294,7 +293,7 @@ export function buildPowerAppsPrompt(doc: Doc, widths: Record<string, number>, o
   lines.push("");
   lines.push("Output: the YAML files in full, then a short list of assumptions and any control whose `describe_control` result differed from this brief.");
   lines.push("");
-  lines.push(`## Sources (checked ${MAP.checkedOn}${MAP.reviewedBy ? `; ${MAP.reviewedBy}` : ""})`);
+  lines.push(`## Sources (checked ${MAP.checkedOn})`);
   for (const url of sourceUrls(kindsUsed)) lines.push(`- ${url}`);
 
   return lines.join("\n");
